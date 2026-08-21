@@ -1,0 +1,34 @@
+{
+  "name": "authivara-proof-of-authorship",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0 --port 4173",
+    "dev:api": "npm run dev --workspace @authivara/api",
+    "build": "next build",
+    "build:api": "npm run build --workspace @authivara/api",
+    "build:all": "npm run build && npm run build:api",
+    "start": "next start --hostname 0.0.0.0 --port 4173",
+    "test": "vitest run",
+    "test:all": "npm test && npm test --workspace @authivara/api",
+    "typecheck:api": "npm run typecheck --workspace @authivara/api",
+    "prisma:generate": "npm run prisma:generate --workspace @authivara/api",
+    "prisma:deploy": "npm run prisma:deploy --workspace @authivara/api",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "hash-wasm": "^4.12.0",
+    "lucide-react": "1.33.0",
+    "next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  },
+  "workspaces": ["apps/*"]
+}

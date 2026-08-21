@@ -1,0 +1,30 @@
+# Requirements audit
+
+Audit date: 2026-08-21
+
+| Requirement area | Status | Evidence / remaining release dependency |
+| --- | --- | --- |
+| Sign-up and authentication | Implemented foundation | Argon2id passwords, hashed opaque sessions, HTTP-only same-site cookies, origin checks, one-time magic links, and Google OIDC signature/audience/issuer/email verification. Deployment needs email/Google credentials and UX. Wallet login is optional and MFA ceremony/recovery endpoints remain release work. |
+| Creator profile | Implemented | Normalized `CreatorProfile` and authenticated read/update routes. |
+| Secure uploads | Implemented foundation | Signed S3 PUT, size/MIME pairing, magic-byte checks, private encrypted keys, progress/retry client helper, cancellation, duplicate digest checks, server streaming hash, extensible type policy. Production bucket/KMS policy is an infrastructure release dependency. |
+| Canonical hashing | Implemented | Browser Web Worker and server both stream exact bytes through SHA-256. Client/server mismatch stops registration. Metadata hashes are separately labelled and never replace the canonical content hash. |
+| Duplicate detection | Implemented | Classifies same-user, authorized-organization, and public-proof matches. A cross-account private match is deliberately indistinguishable from no accessible match and never exposes private identity. |
+| Malware scanning | Provider implemented | Production refuses to start without a remote scanner URL. Scanner availability and quarantine policy need deployment validation. |
+| Privacy / off-chain originals | Implemented invariant | Anchor providers receive hashes/proof metadata only; public responses omit storage keys and private account data. A privacy review and network egress test remain release gates. |
+| Provenance and version history | Implemented | Atomic content/version/proof records, canonical metadata digest, immutable prior versions, creator/timestamp/file metadata per version, Git-style history UI, and metadata comparison. The comparison claims exact equivalence only when SHA-256 hashes match; optional visual-diff previews remain future enhancement. |
+| Blockchain abstraction | Implemented | `BlockchainProvider` exposes register, status, verify, and cost methods. Sandbox is development-only; production uses the HTTP managed EVM/Merkle gateway adapter. Live chain credentials, contract/gateway review, reconciliation worker, and finality SLO remain operational dependencies. |
+| Status tracking | Implemented | Status read and provider reconciliation endpoints; persistence includes transaction, block, submitted, and anchored times. Automated scheduled polling/queue remains a deployment worker concern. |
+| Certificates and share links | Implemented | Professional PDF certificate includes creator, work, proof ID, exact SHA-256, dates, network, transaction, verification URL, and QR. Public QR codes resolve to `/proof/PCA-…`; private certificates rotate a non-expiring capability link. The certificate explicitly disclaims government/copyright authority. JSON evidence and revocable sharing remain available. |
+| Third-party file verification | Implemented | Browser Web Worker recalculates SHA-256; API compares only a digest and records a minimized verification event. |
+| Public proof and verification engine | Implemented | `/proof/PCA-…` exposes minimum proof data only for explicitly public works. `/verify` accepts a file plus optional proof ID/URL and returns match, related version, no match, invalid proof, or revoked. |
+| PostgreSQL design | Implemented schema and migrations | Requested entities plus sessions, one-time auth tokens, auth accounts, uploads, enums, constraints, and indexes are in Prisma. Initial and integrity migrations are checked in; test RLS and backup policies in the target environment. |
+| Organizations and RBAC | Schema foundation | Owner/member roles are normalized and a personal organization is created. Team invitation and policy endpoints are not yet built. |
+| Licences | Schema foundation | Normalized version-ready record exists; contract/e-signature workflows are not yet built. |
+| Audit trail | Implemented foundation | Sensitive implemented actions append hash-chained events. Database append-only grants, KMS-signed daily roots, immutable backup retention, and verification jobs are release dependencies. |
+| Billing, subscriptions, notifications, admin, analytics, webhooks | Not implemented | These are not required for the proof loop and remain explicit modular roadmap items. |
+| Frontend workflow | Implemented foundation | Opt-in API mode provides signup/profile creation, authenticated content loading, streaming local hashes, signed upload progress/retry, durable registration, expiring share links, and a public local-file verifier. The sandbox remains available explicitly. |
+| Creator dashboard | Implemented | Six database-backed metrics cover total/verified/pending/licensed works, verification requests, and encrypted version storage. My Content supports grid/list views and view, verify, certificate, share, licence, versions, and audited archive actions. |
+| Upload experience and categories | Implemented | Six explicit stages cover select, metadata, fingerprinting, hash disclosure, proof submission, and confirmation. All requested categories plus a validated custom category and tags are supported. |
+| Frontend preferred libraries | Partial | Next.js, React, and TypeScript are present. The inherited visual system uses custom CSS/state rather than Tailwind, shadcn/ui, React Hook Form, and TanStack Query. API inputs use Zod; the remaining client libraries are an implementation preference, not a security boundary. |
+
+The core privacy-preserving proof workflow is now represented in executable code, but this repository is **not production-certified**. A live launch still needs infrastructure, provider credentials, database migrations/RLS, OAuth/email/MFA providers, queue workers, observability, disaster-recovery testing, security review, privacy impact assessment, and legal review described in the threat model.
