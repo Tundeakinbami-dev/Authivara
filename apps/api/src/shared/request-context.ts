@@ -4,6 +4,7 @@ import { UnauthorizedError } from './errors.js';
 export interface AuthenticatedUser {
   id: string;
   email: string;
+  emailVerifiedAt: Date | null;
 }
 
 declare module 'fastify' {

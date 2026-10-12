@@ -22,4 +22,8 @@ describe('production safety gates', () => {
       SESSION_COOKIE_NAME: 'unsafe', MALWARE_SCANNER_URL: 'https://scanner.example.com', EMAIL_DELIVERY_URL: 'https://email.example.com',
     })).toThrow('__Host-');
   });
+
+  it('requires a Stellar account and seed when the Stellar provider is selected', () => {
+    expect(() => loadConfig({ ...base, ANCHOR_PROVIDER: 'stellar' })).toThrow('STELLAR_ANCHOR_ACCOUNT');
+  });
 });

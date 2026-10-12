@@ -15,6 +15,7 @@ import { registerProfileRoutes } from './modules/users/profile.routes.js';
 import type { BlockchainProvider } from './modules/blockchain/blockchain-provider.js';
 import { SandboxBlockchainProvider } from './modules/blockchain/sandbox.provider.js';
 import { HttpAnchorProvider } from './modules/blockchain/http-anchor.provider.js';
+import { StellarAnchorProvider } from './modules/blockchain/stellar.provider.js';
 import type { ObjectStorage } from './modules/uploads/object-storage.js';
 import { S3ObjectStorage } from './modules/uploads/s3-object-storage.js';
 import type { MalwareScanner } from './modules/uploads/malware-scanner.js';
@@ -49,7 +50,14 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
     : new NoopMalwareScanner());
   const blockchain = dependencies.blockchain ?? (config.ANCHOR_PROVIDER === 'http'
     ? new HttpAnchorProvider(config.ANCHOR_NETWORK, config.ANCHOR_API_URL!, config.ANCHOR_API_KEY!)
-    : new SandboxBlockchainProvider());
+    : config.ANCHOR_PROVIDER === 'stellar'
+      ? new StellarAnchorProvider({
+        horizonUrl: config.STELLAR_HORIZON_URL,
+        networkPassphrase: config.STELLAR_NETWORK_PASSPHRASE,
+        anchorAccount: config.STELLAR_ANCHOR_ACCOUNT!,
+        anchorSecret: config.STELLAR_ANCHOR_SECRET!,
+      })
+      : new SandboxBlockchainProvider());
   const audit = new AuditService(database);
   const emailSender = config.EMAIL_DELIVERY_URL
     ? new RemoteEmailSender(config.EMAIL_DELIVERY_URL, config.EMAIL_DELIVERY_TOKEN)
