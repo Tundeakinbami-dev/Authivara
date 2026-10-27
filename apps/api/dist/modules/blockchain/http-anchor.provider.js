@@ -4,6 +4,7 @@ export class HttpAnchorProvider {
     network;
     baseUrl;
     apiKey;
+    kind = 'BLOCKCHAIN';
     constructor(network, baseUrl, apiKey) {
         this.network = network;
         this.baseUrl = baseUrl;

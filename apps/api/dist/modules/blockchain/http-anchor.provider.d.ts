@@ -4,6 +4,7 @@ export declare class HttpAnchorProvider implements BlockchainProvider {
     readonly network: string;
     private readonly baseUrl;
     private readonly apiKey;
+    readonly kind: "BLOCKCHAIN";
     constructor(network: string, baseUrl: string, apiKey: string);
     private request;
     registerProof(input: RegisterProofInput): Promise<AnchorReceipt>;

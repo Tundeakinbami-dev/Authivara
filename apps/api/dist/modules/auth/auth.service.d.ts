@@ -47,6 +47,7 @@ export declare class AuthService {
     authenticate(rawToken?: string): Promise<{
         id: string;
         email: string;
+        emailVerifiedAt: Date | null;
     } | null>;
     logout(rawToken: string | undefined): Promise<void>;
     requestMagicLink(emailInput: string): Promise<{

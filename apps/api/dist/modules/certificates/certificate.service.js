@@ -57,7 +57,7 @@ export class CertificateService {
             transactionId: certificate.provenance.transactionHash,
             verificationUrl,
             certificateNumber: certificate.certificateNumber,
-            issuedAt: new Date(),
+            issuedAt: certificate.generatedAt,
         });
     }
 }

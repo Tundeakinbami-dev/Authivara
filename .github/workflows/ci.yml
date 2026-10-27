@@ -2,10 +2,13 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
-  test:
+  test-and-build:
+    name: Test and Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,7 +16,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm test --workspace @authivara/api
-      - run: npm run build
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+      - name: Run root and unit tests
+        run: npm test
+      - name: Run API workspace tests
+        run: npm test --workspace @authivara/api
+      - name: Run API typecheck
+        run: npm run typecheck:api
+      - name: Build all packages (Next.js & Fastify API)
+        run: npm run build:all

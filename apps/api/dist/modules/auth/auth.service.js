@@ -70,7 +70,7 @@ export class AuthService {
         });
         if (!session || session.revokedAt || session.expiresAt <= new Date())
             return null;
-        return { id: session.user.id, email: session.user.email };
+        return { id: session.user.id, email: session.user.email, emailVerifiedAt: session.user.emailVerifiedAt };
     }
     async logout(rawToken) {
         if (!rawToken)

@@ -1,6 +1,7 @@
 import { sha256 } from '../../shared/crypto.js';
 /** Development-only deterministic provider. Production startup rejects this provider. */
 export class SandboxBlockchainProvider {
+    kind = 'BLOCKCHAIN';
     network = 'Authivara Sandbox Anchor';
     async registerProof(input) {
         return {

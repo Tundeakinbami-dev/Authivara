@@ -2,6 +2,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 export interface AuthenticatedUser {
     id: string;
     email: string;
+    emailVerifiedAt: Date | null;
 }
 declare module 'fastify' {
     interface FastifyRequest {

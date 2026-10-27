@@ -49,8 +49,13 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   if (parsed.data.ANCHOR_PROVIDER === 'http' && (!parsed.data.ANCHOR_API_URL || !parsed.data.ANCHOR_API_KEY)) {
     throw new Error('ANCHOR_API_URL and ANCHOR_API_KEY are required for the http anchoring provider');
   }
-  if (parsed.data.ANCHOR_PROVIDER === 'stellar' && (!parsed.data.STELLAR_ANCHOR_ACCOUNT || !parsed.data.STELLAR_ANCHOR_SECRET)) {
-    throw new Error('STELLAR_ANCHOR_ACCOUNT and STELLAR_ANCHOR_SECRET are required for the stellar anchoring provider');
+  if (parsed.data.ANCHOR_PROVIDER === 'stellar') {
+    if (!parsed.data.STELLAR_ANCHOR_ACCOUNT || !parsed.data.STELLAR_ANCHOR_SECRET) {
+      throw new Error('STELLAR_ANCHOR_ACCOUNT and STELLAR_ANCHOR_SECRET are required for the stellar anchoring provider');
+    }
+    if (!parsed.data.ANCHOR_EXPLORER_URL) {
+      parsed.data.ANCHOR_EXPLORER_URL = 'https://stellar.expert/explorer/testnet/tx';
+    }
   }
   if (parsed.data.NODE_ENV === 'production' && !parsed.data.MALWARE_SCANNER_URL) {
     throw new Error('MALWARE_SCANNER_URL is required in production');

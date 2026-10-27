@@ -27,7 +27,7 @@ export class VerificationService {
     const revoked = certificate.status === 'REVOKED' || certificate.provenance.status === 'REVOKED';
     const matches = certificate.provenance.hash === submittedHash.toLowerCase();
     const anchorVerified = matches && Boolean(certificate.provenance.transactionHash) && await this.blockchain
-      .verifyProof(submittedHash.toLowerCase(), certificate.provenance.transactionHash!)
+      .verifyProof(submittedHash.toLowerCase(), certificate.provenance.transactionHash!, certificate.provenance.proofId)
       .catch(() => false);
     const result = revoked ? 'REVOKED' : matches ? 'MATCH' : 'NO_MATCH';
     await this.database.verificationEvent.create({
@@ -51,7 +51,9 @@ export class VerificationService {
 
   async inspectPublicProof(proofId: string) {
     const proof = await this.findPublicProof(proofId);
-    const anchorVerified = Boolean(proof.transactionHash) && await this.blockchain.verifyProof(proof.hash, proof.transactionHash!).catch(() => false);
+    const anchorVerified = Boolean(proof.transactionHash) && await this.blockchain
+      .verifyProof(proof.hash, proof.transactionHash!, proof.proofId)
+      .catch(() => false);
     return { proof: this.publicProof(proof), timeline: this.timeline(proof.content.versions), anchorVerified };
   }
 
@@ -88,7 +90,7 @@ export class VerificationService {
       : undefined;
     const result = revoked ? 'REVOKED' : exactMatch ? 'MATCH' : relatedVersion ? 'RELATED_VERSION' : 'NO_MATCH';
     const anchorVerified = exactMatch && Boolean(proof.transactionHash) && await this.blockchain
-      .verifyProof(submittedHash, proof.transactionHash!)
+      .verifyProof(submittedHash, proof.transactionHash!, proof.proofId)
       .catch(() => false);
     await this.database.verificationEvent.create({
       data: {

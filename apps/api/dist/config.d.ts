@@ -23,11 +23,16 @@ declare const environmentSchema: z.ZodObject<{
     ANCHOR_PROVIDER: z.ZodDefault<z.ZodEnum<{
         sandbox: "sandbox";
         http: "http";
+        stellar: "stellar";
     }>>;
     ANCHOR_NETWORK: z.ZodDefault<z.ZodString>;
     ANCHOR_API_URL: z.ZodOptional<z.ZodString>;
     ANCHOR_API_KEY: z.ZodOptional<z.ZodString>;
     ANCHOR_EXPLORER_URL: z.ZodOptional<z.ZodString>;
+    STELLAR_HORIZON_URL: z.ZodDefault<z.ZodString>;
+    STELLAR_NETWORK_PASSPHRASE: z.ZodDefault<z.ZodString>;
+    STELLAR_ANCHOR_ACCOUNT: z.ZodOptional<z.ZodString>;
+    STELLAR_ANCHOR_SECRET: z.ZodOptional<z.ZodString>;
     MALWARE_SCANNER_URL: z.ZodOptional<z.ZodString>;
     MALWARE_SCANNER_TOKEN: z.ZodOptional<z.ZodString>;
     EMAIL_DELIVERY_URL: z.ZodOptional<z.ZodString>;

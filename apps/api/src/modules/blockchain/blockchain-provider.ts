@@ -26,7 +26,7 @@ export interface ProvenanceProvider {
   readonly network: string;
   registerProof(input: RegisterProofInput): Promise<AnchorReceipt>;
   getTransactionStatus(transactionHash: string): Promise<AnchorReceipt>;
-  verifyProof(contentHash: string, transactionHash: string): Promise<boolean>;
+  verifyProof(contentHash: string, transactionHash: string, proofId?: string): Promise<boolean>;
   estimateCost(contentHash: string): Promise<{ amount: string; currency: string }>;
 }
 

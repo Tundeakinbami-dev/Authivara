@@ -15,13 +15,20 @@ export interface AnchorReceipt {
     anchoredAt?: string;
     providerReceipt?: Record<string, unknown>;
 }
-export interface BlockchainProvider {
+/** Standards-neutral provider contract. Implementations may anchor with a
+ * blockchain, Content Credentials, trusted timestamping, or enterprise
+ * notarization without coupling domain services to one ecosystem. */
+export interface ProvenanceProvider {
+    readonly kind: string;
     readonly network: string;
     registerProof(input: RegisterProofInput): Promise<AnchorReceipt>;
     getTransactionStatus(transactionHash: string): Promise<AnchorReceipt>;
-    verifyProof(contentHash: string, transactionHash: string): Promise<boolean>;
+    verifyProof(contentHash: string, transactionHash: string, proofId?: string): Promise<boolean>;
     estimateCost(contentHash: string): Promise<{
         amount: string;
         currency: string;
     }>;
+}
+export interface BlockchainProvider extends ProvenanceProvider {
+    readonly kind: 'BLOCKCHAIN';
 }

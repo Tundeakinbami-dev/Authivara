@@ -1,6 +1,7 @@
 import type { AnchorReceipt, BlockchainProvider, RegisterProofInput } from './blockchain-provider.js';
 /** Development-only deterministic provider. Production startup rejects this provider. */
 export declare class SandboxBlockchainProvider implements BlockchainProvider {
+    readonly kind: "BLOCKCHAIN";
     readonly network = "Authivara Sandbox Anchor";
     registerProof(input: RegisterProofInput): Promise<AnchorReceipt>;
     getTransactionStatus(transactionHash: string): Promise<AnchorReceipt>;

@@ -12,6 +12,7 @@
     "start": "next start --hostname 0.0.0.0 --port 4173",
     "test": "vitest run",
     "test:all": "npm test && npm test --workspace @authivara/api",
+    "test:stellar:live": "tsx scripts/verify-stellar-testnet.ts",
     "typecheck:api": "npm run typecheck --workspace @authivara/api",
     "prisma:generate": "npm run prisma:generate --workspace @authivara/api",
     "prisma:deploy": "npm run prisma:deploy --workspace @authivara/api",
@@ -27,8 +28,11 @@
   "devDependencies": {
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
-    "typescript": "7.0.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3",
     "vitest": "4.1.11"
   },
-  "workspaces": ["apps/*"]
+  "workspaces": [
+    "apps/*"
+  ]
 }

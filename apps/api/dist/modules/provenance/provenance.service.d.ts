@@ -1,6 +1,6 @@
 import { type PrismaClient } from '@prisma/client';
 import type { AppConfig } from '../../config.js';
-import type { BlockchainProvider } from '../blockchain/blockchain-provider.js';
+import type { ProvenanceProvider } from '../blockchain/blockchain-provider.js';
 import { AuditService } from '../audit/audit.service.js';
 export interface RegisterContentInput {
     uploadId: string;
@@ -22,7 +22,7 @@ export declare class ProvenanceService {
     private readonly blockchain;
     private readonly audit;
     private readonly config;
-    constructor(database: PrismaClient, blockchain: BlockchainProvider, audit: AuditService, config: AppConfig);
+    constructor(database: PrismaClient, blockchain: ProvenanceProvider, audit: AuditService, config: AppConfig);
     register(userId: string, input: RegisterContentInput): Promise<{
         content: {
             id: string;

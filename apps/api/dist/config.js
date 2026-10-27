@@ -16,11 +16,15 @@ const environmentSchema = z.object({
     STORAGE_SECRET_ACCESS_KEY: z.string().optional(),
     STORAGE_KMS_KEY_ID: z.string().optional(),
     MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(2_147_483_648),
-    ANCHOR_PROVIDER: z.enum(['sandbox', 'http']).default('sandbox'),
+    ANCHOR_PROVIDER: z.enum(['sandbox', 'http', 'stellar']).default('sandbox'),
     ANCHOR_NETWORK: z.string().default('Authivara Sandbox Anchor'),
     ANCHOR_API_URL: z.string().url().optional(),
     ANCHOR_API_KEY: z.string().optional(),
     ANCHOR_EXPLORER_URL: z.string().url().optional(),
+    STELLAR_HORIZON_URL: z.string().url().default('https://horizon-testnet.stellar.org'),
+    STELLAR_NETWORK_PASSPHRASE: z.string().default('Test SDF Network ; September 2015'),
+    STELLAR_ANCHOR_ACCOUNT: z.string().regex(/^G[A-Z2-7]{55}$/, 'STELLAR_ANCHOR_ACCOUNT must be a Stellar public key').optional(),
+    STELLAR_ANCHOR_SECRET: z.string().regex(/^S[A-Z2-7]{55}$/, 'STELLAR_ANCHOR_SECRET must be a Stellar secret seed').optional(),
     MALWARE_SCANNER_URL: z.string().url().optional(),
     MALWARE_SCANNER_TOKEN: z.string().optional(),
     EMAIL_DELIVERY_URL: z.string().url().optional(),
@@ -40,6 +44,14 @@ export function loadConfig(environment = process.env) {
     }
     if (parsed.data.ANCHOR_PROVIDER === 'http' && (!parsed.data.ANCHOR_API_URL || !parsed.data.ANCHOR_API_KEY)) {
         throw new Error('ANCHOR_API_URL and ANCHOR_API_KEY are required for the http anchoring provider');
+    }
+    if (parsed.data.ANCHOR_PROVIDER === 'stellar') {
+        if (!parsed.data.STELLAR_ANCHOR_ACCOUNT || !parsed.data.STELLAR_ANCHOR_SECRET) {
+            throw new Error('STELLAR_ANCHOR_ACCOUNT and STELLAR_ANCHOR_SECRET are required for the stellar anchoring provider');
+        }
+        if (!parsed.data.ANCHOR_EXPLORER_URL) {
+            parsed.data.ANCHOR_EXPLORER_URL = 'https://stellar.expert/explorer/testnet/tx';
+        }
     }
     if (parsed.data.NODE_ENV === 'production' && !parsed.data.MALWARE_SCANNER_URL) {
         throw new Error('MALWARE_SCANNER_URL is required in production');

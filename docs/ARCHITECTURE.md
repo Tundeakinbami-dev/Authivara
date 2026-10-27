@@ -1,45 +1,108 @@
-# Production architecture decision
+# Authivara Architecture & Design Decisions
 
-## Decision
+**Document Version:** 2.0.0  
+**Target Ecosystem:** Stellar Network / Soroban Smart Contracts  
+**Application Architecture:** Modular Monolith (Next.js 16 Client + Fastify 5 API + Stellar Ledger Anchor)
 
-Authivara uses a **modular monolith** for the first production deployment: Next.js/React in the web process and a separate Fastify/TypeScript API process backed by PostgreSQL/Prisma, private S3-compatible object storage, and a provider-neutral anchoring adapter.
+---
 
-Fastify was selected over a larger framework because the domain boundaries are explicit in the source tree, its request lifecycle and schema/error handling are small and observable, and the API can be split by module later without rewriting business rules. The web and API are independently deployable. PostgreSQL remains the system of record; public chains are timestamp anchors, not databases.
+## 1. System Overview
 
-## Runtime flow
+Authivara is a cryptographic evidence and digital document verification system. It enables creators, legal professionals, and software engineers to create verifiable proof that an exact sequence of bytes existed at a certified timestamp without uploading confidential content to a public ledger.
 
-1. A user creates an account and creator profile by password, single-use magic link, or verified Google OIDC identity. A random session token is stored only in an HTTP-only, same-site cookie; only its SHA-256 digest is persisted.
-2. The authenticated client requests a signed upload instruction after extension, declared MIME, and size policy checks.
-3. The browser uploads directly to a private bucket with server-side encryption and visible progress/retry/cancellation support. No public proof is created yet.
-4. Completion checks object size and magic bytes, streams the stored bytes through SHA-256, compares an optional client digest, and invokes the malware-scanner adapter. The API never trusts the extension alone.
-5. Registration atomically creates `Content`, `ContentVersion`, and a pending `ProvenanceRecord`. Approved metadata is canonicalized and hashed.
-6. `BlockchainProvider.registerProof()` receives only proof ID, content hash, optional metadata hash, version, and timestamp. It never receives the file, storage key, private note, user email, or IP data.
-7. The receipt is reconciled into status, transaction, block, and finality fields. A certificate and unpredictable share token are created.
-8. A verifier hashes the third-party file locally, then sends only the digest to the token-scoped public endpoint. The event retains a keyed IP digest rather than a raw IP.
+```mermaid
+flowchart TD
+    User["Creator / Verifier"] -->|1. File Drag & Drop| WebApp["Next.js Web Client"]
+    WebApp -->|2. Local SHA-256 Hashing| WebWorker["Browser Web Worker / WebCrypto"]
+    WebApp -->|3. Presigned Upload| Vault["Private Encrypted S3 Vault"]
+    WebApp -->|4. Register Proof Request| API["Fastify API Gateway"]
+    API -->|5. Independent Re-Hashing & Validation| API
+    API -->|6. Persist Proof Record| DB["PostgreSQL / Prisma ORM"]
+    API -->|7. Build & Sign Transaction| StellarProvider["StellarAnchorProvider"]
+    StellarProvider -->|8. manageData Submission| Horizon["Stellar Horizon API"]
+    Horizon -->|9. SCP Consensus| Ledger["Stellar Testnet Ledger"]
+    Verifier["Third-Party Auditor"] -->|10. Query Operations| Horizon
+    Verifier -->|11. Verify Hash Equality| Verifier
+```
 
-## Module boundaries
+---
 
-The implemented API modules are `auth`, `users`, `content`, `uploads`, `audit`, `provenance`, `blockchain`, `verification`, and `certificates`. The normalized schema also establishes `organizations`, `licensing`, sessions, authentication accounts, and content versions. Billing, subscriptions, notifications, analytics, admin operations, webhooks, and full licensing workflows remain separate future modules; they must not be embedded in provenance controllers.
+## 2. Stellar Architectural Decision: Native `manageData` vs. Soroban Contract
 
-Controllers validate transport input and call services. Services own business rules. Prisma is the repository/data layer for this first deployment. External systems are behind `ObjectStorage`, `MalwareScanner`, and `BlockchainProvider` interfaces.
+### Decision:
+Authivara adopts **Stellar Native `manageData` Operations** as its primary production anchoring engine on Stellar Testnet, while maintaining a **Soroban Smart Contract implementation** (`contracts/proof_anchor/`) for advanced enterprise governance and multi-signature policies.
 
-## Privacy and security invariants
+### Technical Justification:
 
-- Original bytes and storage keys are never sent to an anchoring provider or returned by a public route.
-- Buckets must block public access and enforce TLS, versioning, lifecycle rules, and KMS/SSE encryption.
-- Production startup rejects the sandbox anchor and a missing malware scanner.
-- Tenant/resource ownership is derived from the authenticated session, never accepted from request bodies.
-- Mutations made with a cookie session require the configured `Origin`.
-- Audit events form a SHA-256 chain. Production should additionally deny `UPDATE`/`DELETE` to the application database role, sign daily roots with KMS, and retain immutable backups.
-- The browser hashes in a Web Worker using incremental chunks. The server independently streams and re-hashes any object placed in the vault.
+| Criteria | Stellar Native `manageData` (Primary) | Soroban Smart Contract (Advanced) |
+|---|---|---|
+| **Simplicity & Reliability** | **Extremely high.** Uses core Stellar Consensus Protocol operations without virtual machine execution risk. | Medium. Requires Soroban host environment, WASM bytecode deployment, and SDK bindings. |
+| **Transaction Cost** | **Lowest possible.** Base fee: 100 stroops (0.00001 XLM). No contract execution or metering costs. | Higher. Incurs CPU instructions, memory allocations, and state storage fees. |
+| **State Expiry / TTL** | **Permanent on ledger history.** Transaction and operations remain permanently in Horizon archives. | Requires ongoing TTL extension to prevent state eviction from ledger instance storage. |
+| **Queryability** | **Universal.** Any standard Horizon server or block explorer (StellarExpert) decodes and displays `manage_data` entries natively. | Requires Soroban RPC `/simulateTransaction` or contract invocation decoding. |
+| **On-Chain Governance** | Single-signer authority (account keypair). | Multi-party governance, on-chain revocation voting, and automated access control logic. |
 
-## Deployment units
+### Architectural Conclusion:
+For digital document verification and evidence provenance, single-transaction `manageData` anchoring is the simplest, most reliable, and lowest-cost solution that solves the exact problem. Soroban smart contracts are retained in the codebase to support future decentralized DAO notarization and multi-party signing workflows.
 
-- `web`: Next.js standalone output behind a CDN/WAF.
-- `api`: stateless Fastify containers, private database/storage connectivity.
-- `anchor worker`: the HTTP provider may point to a separately scaled managed EVM/Merkle batcher. Hash batches are preferred to one transaction per work.
-- `scanner`: isolated malware service with a short-lived signed read URL.
-- `postgres`: encrypted PostgreSQL with point-in-time recovery.
-- `object storage`: private S3/R2-compatible bucket; originals never go to a public chain.
+---
 
-Use separate KMS identities for storage, certificate signing, audit roots, and the anchoring wallet. Secrets belong in a secret manager, never environment files committed to source control.
+## 3. On-Chain and Off-Chain Separation
+
+To comply with global data protection laws (GDPR, CCPA) and preserve creator confidentiality:
+
+1. **Strictly Off-Chain**:
+   - Original document bytes (PDFs, source code, designs, audio).
+   - Author personally identifiable information (PII, legal names, email addresses).
+   - Storage bucket keys and access credentials.
+   - Private creator notes and collaboration comments.
+
+2. **Strictly On-Chain (Stellar Ledger)**:
+   - **Data Entry Name**: `authivara-proof:<proof-id>` (ASCII string, 32 bytes max).
+   - **Data Entry Value**: The 64-character lowercase SHA-256 hexadecimal content digest (64 bytes max, fitting Stellar's native 64-byte limit).
+   - Ledger timestamp, sequence number, and transaction hash generated natively by Stellar consensus.
+
+---
+
+## 4. End-to-End Verification Lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Creator
+    participant Browser as Web Browser
+    participant API as Fastify API
+    participant Horizon as Stellar Horizon
+    actor Verifier
+
+    Creator->>Browser: Selects file (e.g., Contract.pdf)
+    Browser->>Browser: Computes SHA-256 in Web Worker
+    Creator->>API: Submits registration request
+    API->>API: Verifies file magic bytes & recomputes SHA-256
+    API->>Horizon: Submits TransactionBuilder.manageData(key, hash)
+    Horizon-->>API: Returns Transaction Receipt (hash, ledger)
+    API-->>Creator: Returns Proof ID (PCA-...) + QR PDF Certificate
+
+    Note over Creator,Verifier: Sometime later...
+    Verifier->>Browser: Uploads local candidate copy
+    Browser->>Browser: Calculates candidate SHA-256 locally
+    Browser->>Horizon: Queries /operations for transaction hash
+    Horizon-->>Browser: Returns decoded manage_data value
+    Browser->>Browser: Compares candidate hash with ledger value
+    alt Hashes Match
+        Browser-->>Verifier: ✓ Verified (Byte-for-byte exact match)
+    else Hashes Differ
+        Browser-->>Verifier: ✕ Tamper Detected (Bytes have been altered)
+    end
+```
+
+---
+
+## 5. Distinction of Evidentiary Claims
+
+Authivara documentation and user interfaces strictly distinguish between the following four concepts:
+
+1. **Document Integrity**: Proof that the candidate file's exact binary bytes match the fingerprinted digest bit-for-bit.
+2. **Proof of Existence**: Proof that the specific cryptographic digest was witnessed and committed to the Stellar ledger prior to or at a specific ledger timestamp.
+3. **Issuer Authenticity**: Cryptographic proof that a specific Stellar public key authorized the anchor transaction.
+4. **Legal Copyright / Authorship**: Authivara **does not** adjudicate legal ownership or copyright validity. Proof records serve as verifiable evidence in legal disputes, but do not replace legal title or judicial rulings.
